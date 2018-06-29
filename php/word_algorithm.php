@@ -1,38 +1,65 @@
 <?php
-/**
- * 分割代码
- */
-$i  = 0;                 //分割的块编号
-$fp  = fopen("hadoop.sql","rb");      //要分割的文件
-$file = fopen("split_hash.txt","a");    //记录分割的信息的文本文件，实际生产环境存在redis更合适
-while(!feof($fp)){
-    $handle = fopen("hadoop.{$i}.sql","wb");
-    fwrite($handle,fread($fp,5242880));//切割的块大小 5m
-    fwrite($file,"hadoop.{$i}.sql\r\n");
-    fclose($handle);
-    unset($handle);
-    $i++;
-}
-fclose ($fp);
-fclose ($file);
-echo "ok";
-?>
-
-<?php
-/**
- * 合并代码
- */
-$hash = file_get_contents("split_hash.txt"); //读取分割文件的信息
-$list = explode("\r\n",$hash);
-$fp = fopen("hadoop2.sql","ab");    //合并后的文件名
-foreach($list as $value){
-  if(!empty($value)) {
-    $handle = fopen($value,"rb");
-    fwrite($fp,fread($handle,filesize($value)));
-    fclose($handle);
-    unset($handle);
+//组词算法
+function diyWords($arr,$m){
+  $result = array();
+  if ($m ==1){//只剩一个词时直接返回
+    return $arr;
   }
+  if ($m == count($arr)){
+    $result[] = implode('' , $arr);
+    return $result;
+  }
+  $temp_firstelement = $arr[0];
+  unset($arr[0]);
+  $arr = array_values($arr);
+  $temp_list1 = diyWords($arr, ($m-1));
+  foreach ($temp_list1 as $s){
+    $s = $temp_firstelement.$s;
+    $result[] = $s;
+  }
+  $temp_list2 = diyWords($arr, $m);
+  foreach ($temp_list2 as $s){
+    $result[] = $s;
+  }
+  return $result;
 }
-fclose($fp);
-echo "ok";
-?>
+//组词算法
+$arr=array('裤子','牛仔','低腰','加肥');
+$count=count($arr);
+for($i=1;$i<=$count;$i++){
+  $temp[$i]=diyWords($arr,$i);
+}
+echo '<pre/>';print_r($temp);
+
+/*
+Array
+(
+[1] => Array
+(
+[0] => 裤子
+[1] => 牛仔
+[2] => 低腰
+[3] => 加肥
+)
+[2] => Array
+(
+[0] => 裤子牛仔
+[1] => 裤子低腰
+[2] => 裤子加肥
+[3] => 牛仔低腰
+[4] => 牛仔加肥
+[5] => 低腰加肥
+)
+[3] => Array
+(
+[0] => 裤子牛仔低腰
+[1] => 裤子牛仔加肥
+[2] => 裤子低腰加肥
+[3] => 牛仔低腰加肥
+)
+[4] => Array
+(
+[0] => 裤子牛仔低腰加肥
+)
+)
+*/
